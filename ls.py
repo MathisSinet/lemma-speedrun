@@ -365,13 +365,15 @@ class Lemma1(BaseLemma):
             )
         }
 
-    def get_rhodot(self, q: float):
-        return (
-            self.variables["c1"].value() * (
-                self.variables["c2"].value() * (math.sin(q) + 1/2)
-                + self.variables["c3"].value() - 1
-            )
-        )
+    def get_rhodot(self, q: float, dt: float = 0.1):
+        qt0 = q
+        qt1 = q + dt
+
+        c1 = self.variables["c1"].value()
+        c2 = self.variables["c2"].value()
+        c3 = self.variables["c3"].value()
+
+        return c1 * (dt * (1/2 * c2 + c3) + c2 * (math.cos(qt0) - math.cos(qt1)))
     
     def get_total_best_distribution(self, q: float):
         current_levels = {var: self.variables[var].level for var in self.variables}
@@ -394,13 +396,14 @@ class Lemma1(BaseLemma):
         return best_dist
 
     def tick(self):
+        # Interpolation bs
+        self.rho += self.get_rhodot(self.q)
+        self.rho_total += self.get_rhodot(self.q)
         self.q += 0.1
-        self.rho += self.get_rhodot(self.q) * 0.1
-        self.rho_total += self.get_rhodot(self.q) * 0.1
 
     def run(self):
         while self.rho_total < self.goal:
-            self.set_best_distribution(self.q + 0.1)
+            self.set_best_distribution(self.q)
             self.tick()
             self.insert_output(self.q - 0.1)
             self.ticks += 1
@@ -510,19 +513,24 @@ class Lemma3(BaseLemma):
             )
         }
     
-    def get_rhodot(self, q: float):
-        return (
-            (-2) ** self.variables["c1"].value() * self.variables["c2"].value() +
-            self.variables["c3"].value() * q
-        )
+    def get_rhodot(self, q: float, dt: float = 0.1):
+        qt0 = q
+        qt1 = q + dt * self.get_qdot()
+
+        c1 = self.variables["c1"].value()
+        c2 = self.variables["c2"].value()
+        c3 = self.variables["c3"].value()
+
+        return dt * ((-2) ** c1 * c2 + c3 * (qt0 + qt1) / 2)
 
     def get_qdot(self):
         return self.variables["q1"].value() * self.variables["q2"].value()
     
     def tick(self):
+        # q interpolation
+        self.rho += self.get_rhodot(self.q)
+        self.rho_total += self.get_rhodot(self.q)
         self.q += self.get_qdot() * 0.1
-        self.rho += self.get_rhodot(self.q) * 0.1
-        self.rho_total += self.get_rhodot(self.q) * 0.1
 
 class Lemma4_C3Value(BaseValue):
     def get_value(self, level):
@@ -690,18 +698,25 @@ class Lemma6(BaseLemma):
             )
         }
 
-    def get_rhodot(self, q: float):
-        return q * \
-            (self.variables["c1"].value() - self.variables["c2"].value()) / \
-            (self.variables["c3"].value() - self.variables["c4"].value())
+    def get_rhodot(self, q: float, dt: float = 0.1):
+        qt0 = q
+        qt1 = q + dt * self.get_qdot()
+
+        c1 = self.variables["c1"].value()
+        c2 = self.variables["c2"].value()
+        c3 = self.variables["c3"].value()
+        c4 = self.variables["c4"].value()
+
+        return dt * (c1 - c2) / (c3 - c4) * (qt0 + qt1) / 2
     
     def get_qdot(self):
         return self.variables["q1"].value() * self.variables["q2"].value()
     
     def tick(self):
+        # q interpolation
+        self.rho += self.get_rhodot(self.q)
+        self.rho_total += self.get_rhodot(self.q)
         self.q += self.get_qdot() * 0.1
-        self.rho += self.get_rhodot(self.q) * 0.1
-        self.rho_total += self.get_rhodot(self.q) * 0.1
 
     def get_all_c34(self):
         self.variables["c3"].level = 2
@@ -748,16 +763,23 @@ class Lemma7(BaseLemma):
             )
         }
     
-    def get_rhodot(self, q):
-        return q / abs(math.e - self.variables["c1"].value() / self.variables["c2"].value())
+    def get_rhodot(self, q: float, dt: float = 0.1):
+        qt0 = q
+        qt1 = q + dt * self.get_qdot()
+
+        c1 = self.variables["c1"].value()
+        c2 = self.variables["c2"].value()
+
+        return dt * (qt0 + qt1) / 2 / abs(math.e - c1 / c2)
 
     def get_qdot(self):
         return self.variables["q1"].value() * self.variables["q2"].value()
     
     def tick(self):
+        # q interpolation
+        self.rho += self.get_rhodot(self.q)
+        self.rho_total += self.get_rhodot(self.q)
         self.q += self.get_qdot() * 0.1
-        self.rho += self.get_rhodot(self.q) * 0.1
-        self.rho_total += self.get_rhodot(self.q) * 0.1
 
     def get_all_c12(self):
         self.variables["c1"].level = 0
