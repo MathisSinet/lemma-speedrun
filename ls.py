@@ -237,11 +237,11 @@ class BaseLemma:
 
         return paco_string
                             
-    def parse_pacowoc_string(self, paco_string):
+    def parse_pacowoc_string(self, paco_string: str):
         self.outputs = [{var: self.variables[var].baseLevel for var in self.variables}]
         pos = 0
 
-        print(len(paco_string))
+        #print(len(paco_string))
 
         paco_string = re.sub('n', 'l1', paco_string)
         paco_string = re.sub('o', 'm1', paco_string)
@@ -323,7 +323,7 @@ class BaseLemma:
                     #print(f"On tick {self.ticks}, {var} was refunded to level {self.variables[var].level}")
             for var in self.variables:
                 while self.variables[var].level < levels[var]:
-                    if self.rho < self.variables[var].cost():
+                    if self.rho < self.variables[var].cost() and self.variables[var].cost() != 0:
                         print("Error on tick", self.ticks)
                         raise RunParseError(f"Unable to purchase {var} level {self.variables[var].level + 1} : rho {self.rho} is less than the cost {self.variables[var].cost()}")
                     self.buy(var)
